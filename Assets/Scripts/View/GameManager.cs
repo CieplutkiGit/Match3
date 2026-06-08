@@ -37,6 +37,8 @@ namespace Match3.View
             _boardSystem.FillBoard();
             _boardView.Initialize(_boardSystem);
 
+            ConfigureBackdrop();
+
             _movesLeft = _levelSettings.MaxMoves;
             _score = 0;
 
@@ -50,6 +52,20 @@ namespace Match3.View
 
             _inputManager.OnSwapRequested += HandleSwapRequested;
             _state = GameState.AwaitingInput;
+        }
+
+        private void ConfigureBackdrop()
+        {
+            int w = _boardSystem.Grid.Width;
+            int h = _boardSystem.Grid.Height;
+
+            Vector3 origin = _boardView.GetWorldPosition(0, 0);
+            float cell = 1f;
+            if (w > 1) cell = Mathf.Abs(_boardView.GetWorldPosition(1, 0).x - origin.x);
+            else if (h > 1) cell = Mathf.Abs(_boardView.GetWorldPosition(0, 1).y - origin.y);
+
+            var parent = new GameObject("Backdrop").transform;
+            new BoardBackdrop().Build(parent, w, h, _boardView.GetWorldPosition, cell);
         }
 
         private void ConfigureJuiceBar()
