@@ -42,6 +42,8 @@ namespace Match3.View
             _movesLeft = _levelSettings.MaxMoves;
             _score = 0;
 
+            if (SoundManager.Instance == null)
+                new GameObject("SoundManager").AddComponent<SoundManager>();
             new GameObject("JuiceManager").AddComponent<JuiceManager>();
             ConfigureJuiceBar();
             if (JuiceManager.Instance != null)
@@ -103,10 +105,12 @@ namespace Match3.View
             _state = GameState.Animating;
 
             bool validSwap = _boardSystem.TrySwap(x1, y1, x2, y2, out List<MatchResult> matches);
+            SoundManager.Instance?.PlaySwap();
             yield return StartCoroutine(_boardView.AnimateSwap(x1, y1, x2, y2, !validSwap));
 
             if (!validSwap)
             {
+                SoundManager.Instance?.PlayInvalid();
                 _state = GameState.AwaitingInput;
                 yield break;
             }
@@ -119,6 +123,7 @@ namespace Match3.View
             if (_score >= _levelSettings.TargetScore)
             {
                 _state = GameState.GameOver;
+                SoundManager.Instance?.PlayWin();
                 OnWin?.Invoke();
                 yield break;
             }
@@ -126,6 +131,7 @@ namespace Match3.View
             if (_movesLeft <= 0)
             {
                 _state = GameState.GameOver;
+                SoundManager.Instance?.PlayLose();
                 OnLose?.Invoke();
                 yield break;
             }
@@ -135,11 +141,13 @@ namespace Match3.View
 
         private IEnumerator ProcessChainReaction(List<MatchResult> matches, int focusX = -1, int focusY = -1)
         {
+            int combo = 0;
             while (matches != null && matches.Count > 0)
             {
                 _boardSystem.ClearMatches(matches, focusX, focusY);
 
-                if (_boardSystem.LastBlastPieces.Count > 0)
+                bool hasBlast = _boardSystem.LastBlastPieces.Count > 0;
+                if (hasBlast)
                 {
                     var blastResult = new MatchResult();
                     foreach (var p in _boardSystem.LastBlastPieces)
@@ -156,6 +164,11 @@ namespace Match3.View
                     ? (float)_score / Mathf.Max(1, _levelSettings.TargetScore)
                     : 0f;
                 JuiceManager.Instance?.SetTargets(_score, progress);
+
+                if (hasBlast)
+                    SoundManager.Instance?.PlayBlast();
+                SoundManager.Instance?.PlayPop(combo);
+                combo++;
 
                 yield return StartCoroutine(_boardView.AnimateDestroy(matches));
 

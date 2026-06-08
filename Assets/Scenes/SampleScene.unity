@@ -1769,3 +1769,112 @@ MonoBehaviour:
   m_SendPointerHoverToParent: 1
   m_PointerBehavior: 0
   m_actionsAsset: {fileID: 0}
+--- !u!1 &1000200
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1000201}
+  - component: {fileID: 1000202}
+  m_Layer: 0
+  m_Name: SoundManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1000201
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1000200}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_RootOrder: 10
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1000202
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1000200}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6065ce8c87a7cbe49b4628f79e2d69cf, type: 3}
+  m_Name:
+  m_EditorClassIdentifier:
+  _voiceCount: 8
+  _maxComboSteps: 14
+  _pop:
+    duration: 0.16
+    freqStart: 520
+    freqEnd: 880
+    decay: 22
+    waveform: 0
+    harmonic: 0.3
+    noise: 0
+    noiseDecay: 16
+    volume: 0.5
+  _swap:
+    duration: 0.12
+    freqStart: 300
+    freqEnd: 620
+    decay: 30
+    waveform: 0
+    harmonic: 0
+    noise: 0
+    noiseDecay: 16
+    volume: 0.4
+  _invalid:
+    duration: 0.22
+    freqStart: 220
+    freqEnd: 130
+    decay: 10
+    waveform: 1
+    harmonic: 0
+    noise: 0
+    noiseDecay: 16
+    volume: 0.35
+  _blast:
+    duration: 0.5
+    freqStart: 170
+    freqEnd: 55
+    decay: 6
+    waveform: 0
+    harmonic: 0
+    noise: 0.6
+    noiseDecay: 16
+    volume: 0.9
+  _win:
+    notes:
+    - 523.25
+    - 659.25
+    - 783.99
+    - 1046.5
+    step: 0.12
+    tail: 0.25
+    decay: 7
+    waveform: 0
+    sawMix: 0
+    volume: 0.4
+  _lose:
+    notes:
+    - 392
+    - 329.63
+    - 261.63
+    - 196
+    step: 0.16
+    tail: 0.25
+    decay: 5
+    waveform: 0
+    sawMix: 0.3
+    volume: 0.4
