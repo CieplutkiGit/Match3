@@ -24,10 +24,10 @@ namespace Match3.View
 
         public int Score => _score;
         public int MovesLeft => _movesLeft;
+        public int TargetScore => _levelSettings != null ? _levelSettings.TargetScore : 0;
 
         public event Action<int> OnScoreChanged;
         public event Action<int> OnMovesChanged;
-        public event Action<int> OnTargetScoreSet;
         public event Action OnWin;
         public event Action OnLose;
 
@@ -40,10 +40,6 @@ namespace Match3.View
 
             _movesLeft = _levelSettings.MaxMoves;
             _score = 0;
-
-            OnTargetScoreSet?.Invoke(_levelSettings.TargetScore);
-            OnScoreChanged?.Invoke(_score);
-            OnMovesChanged?.Invoke(_movesLeft);
 
             _inputManager.OnSwapRequested += HandleSwapRequested;
 
@@ -113,8 +109,6 @@ namespace Match3.View
                 yield return StartCoroutine(_boardView.AnimateDestroy(matches));
 
                 var fallInfos = _boardSystem.ApplyGravityAndRefill(out List<PieceData> spawnedPieces);
-                _boardView.RefreshView();
-
                 yield return StartCoroutine(_boardView.AnimateFall(fallInfos, spawnedPieces));
 
                 matches = _matchDetector.FindMatches(_boardSystem.Grid);

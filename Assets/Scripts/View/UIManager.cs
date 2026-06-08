@@ -22,7 +22,10 @@ namespace Match3.View
             _gameManager.OnMovesChanged += UpdateMoves;
             _gameManager.OnWin += ShowWin;
             _gameManager.OnLose += ShowLose;
-            _gameManager.OnTargetScoreSet += UpdateTargetScore;
+
+            UpdateScore(_gameManager.Score);
+            UpdateMoves(_gameManager.MovesLeft);
+            UpdateTargetScore(_gameManager.TargetScore);
         }
 
         private void OnDestroy()
@@ -32,7 +35,6 @@ namespace Match3.View
             _gameManager.OnMovesChanged -= UpdateMoves;
             _gameManager.OnWin -= ShowWin;
             _gameManager.OnLose -= ShowLose;
-            _gameManager.OnTargetScoreSet -= UpdateTargetScore;
         }
 
         private void UpdateScore(int score)

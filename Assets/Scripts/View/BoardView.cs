@@ -40,15 +40,14 @@ namespace Match3.View
                     var data = grid.Get(x, y);
                     if (data != null && data.Color != PieceColor.None)
                     {
-                        SpawnPieceView(x, y, data.Color, data.Type, false);
+                        SpawnAt(x, y, data.Color, data.Type, GetWorldPosition(x, y), false);
                     }
                 }
             }
         }
 
-        private PieceView SpawnPieceView(int x, int y, PieceColor color, PieceType type, bool animate = true)
+        private PieceView SpawnAt(int x, int y, PieceColor color, PieceType type, Vector3 worldPos, bool animate)
         {
-            var worldPos = GetWorldPosition(x, y);
             var pieceInstance = Instantiate(_piecePrefab, worldPos, Quaternion.identity, transform);
             var sprite = _spriteConfig.GetSprite(color, type);
             pieceInstance.Setup(x, y, color, type, sprite);
@@ -75,18 +74,15 @@ namespace Match3.View
                 yield break;
             }
 
-            var pos1 = GetWorldPosition(x1, y1);
-            var pos2 = GetWorldPosition(x2, y2);
-
-            bool done = false;
             int tweensComplete = 0;
+            bool done = false;
 
-            v1.MoveTo(pos2, _swapDuration, Ease.OutCubic, () =>
+            v1.MoveTo(GetWorldPosition(x2, y2), _swapDuration, Ease.OutCubic, () =>
             {
                 tweensComplete++;
                 if (tweensComplete >= 2) done = true;
             });
-            v2.MoveTo(pos1, _swapDuration, Ease.OutCubic, () =>
+            v2.MoveTo(GetWorldPosition(x1, y1), _swapDuration, Ease.OutCubic, () =>
             {
                 tweensComplete++;
                 if (tweensComplete >= 2) done = true;
@@ -100,6 +96,12 @@ namespace Match3.View
                 _pieceViews[x2, y2] = v1;
                 v1.UpdatePosition(x2, y2);
                 v2.UpdatePosition(x1, y1);
+            }
+            else
+            {
+                v1.MoveTo(GetWorldPosition(x1, y1), _swapDuration * 0.5f, Ease.OutCubic);
+                v2.MoveTo(GetWorldPosition(x2, y2), _swapDuration * 0.5f, Ease.OutCubic);
+                yield return new WaitForSeconds(_swapDuration * 0.5f);
             }
 
             IsAnimating = false;
@@ -122,14 +124,14 @@ namespace Match3.View
                 }
             }
 
-            bool done = false;
-            int animatingCount = piecesToDestroy.Count;
-
-            if (animatingCount == 0)
+            if (piecesToDestroy.Count == 0)
             {
                 IsAnimating = false;
                 yield break;
             }
+
+            int animatingCount = piecesToDestroy.Count;
+            bool done = false;
 
             foreach (var view in piecesToDestroy)
             {
@@ -159,21 +161,39 @@ namespace Match3.View
                 yield break;
             }
 
+            var remapped = new Dictionary<(int, int), PieceView>();
             foreach (var info in fallInfos)
             {
-                PieceView view;
                 var data = _boardSystem.Grid.Get(info.ToX, info.ToY);
+                if (data == null || spawnedPieceSet.Contains(data)) continue;
+
+                var view = _pieceViews[info.FromX, info.FromY];
+                if (view != null)
+                {
+                    _pieceViews[info.FromX, info.FromY] = null;
+                    remapped[(info.ToX, info.ToY)] = view;
+                    view.UpdatePosition(info.ToX, info.ToY);
+                }
+            }
+
+            foreach (var kv in remapped)
+            {
+                _pieceViews[kv.Key.Item1, kv.Key.Item2] = kv.Value;
+            }
+
+            foreach (var info in fallInfos)
+            {
+                var data = _boardSystem.Grid.Get(info.ToX, info.ToY);
+                PieceView view;
 
                 if (data != null && spawnedPieceSet.Contains(data))
                 {
                     Vector3 spawnWorldPos = GetWorldPosition(info.FromX, info.FromY);
-                    view = SpawnPieceView(info.ToX, info.ToY, data.Color, data.Type, false);
-                    view.transform.position = spawnWorldPos;
+                    view = SpawnAt(info.ToX, info.ToY, data.Color, data.Type, spawnWorldPos, false);
                 }
                 else
                 {
                     view = _pieceViews[info.ToX, info.ToY];
-                    _pieceViews[info.ToX, info.ToY] = view;
                 }
 
                 if (view == null)
@@ -182,31 +202,12 @@ namespace Match3.View
                     continue;
                 }
 
-                Vector3 targetWorldPos = GetWorldPosition(info.ToX, info.ToY);
-                view.MoveTo(targetWorldPos, _fallDuration, Ease.OutBounce, () =>
-                {
-                    tweensComplete++;
-                });
+                Vector3 targetPos = GetWorldPosition(info.ToX, info.ToY);
+                view.MoveTo(targetPos, _fallDuration, Ease.OutBounce, () => tweensComplete++);
             }
 
             yield return new WaitUntil(() => tweensComplete >= totalTweens);
             IsAnimating = false;
-        }
-
-        public void RefreshView()
-        {
-            var grid = _boardSystem.Grid;
-            for (int x = 0; x < grid.Width; x++)
-            {
-                for (int y = 0; y < grid.Height; y++)
-                {
-                    var data = grid.Get(x, y);
-                    if (data != null && _pieceViews[x, y] != null)
-                    {
-                        _pieceViews[x, y].UpdatePosition(x, y);
-                    }
-                }
-            }
         }
 
         public Vector3 GetWorldPosition(int x, int y)
