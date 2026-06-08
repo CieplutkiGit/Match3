@@ -80,6 +80,81 @@ namespace Match3.Core
             return false;
         }
 
+        public void ClearMatches(List<MatchResult> matches, int focusX = -1, int focusY = -1)
+        {
+            foreach (var match in matches)
+            {
+                PieceData specialSpawnPiece = null;
+                if (match.GeneratedSpecialType != PieceType.Normal)
+                {
+                    foreach (var p in match.MatchedPieces)
+                    {
+                        if (p.X == focusX && p.Y == focusY)
+                        {
+                            specialSpawnPiece = p;
+                            break;
+                        }
+                    }
+                    if (specialSpawnPiece == null && match.MatchedPieces.Count > 0)
+                    {
+                        specialSpawnPiece = match.MatchedPieces[0];
+                    }
+                }
+
+                foreach (var p in match.MatchedPieces)
+                {
+                    if (p == specialSpawnPiece)
+                    {
+                        p.Type = match.GeneratedSpecialType;
+                    }
+                    else
+                    {
+                        Grid.Set(p.X, p.Y, null);
+                    }
+                }
+            }
+        }
+
+        public List<PieceFallInfo> ApplyGravityAndRefill(out List<PieceData> spawnedPieces)
+        {
+            var fallInfoList = new List<PieceFallInfo>();
+            spawnedPieces = new List<PieceData>();
+            var random = new Random();
+            var availableColors = _levelSettings.AvailableColors;
+
+            for (int x = 0; x < Grid.Width; x++)
+            {
+                int emptySpaces = 0;
+                for (int y = 0; y < Grid.Height; y++)
+                {
+                    var current = Grid.Get(x, y);
+                    if (current == null)
+                    {
+                        emptySpaces++;
+                    }
+                    else if (emptySpaces > 0)
+                    {
+                        Grid.Set(x, y - emptySpaces, current);
+                        Grid.Set(x, y, null);
+                        fallInfoList.Add(new PieceFallInfo(x, y, x, y - emptySpaces));
+                    }
+                }
+
+                for (int i = 0; i < emptySpaces; i++)
+                {
+                    int targetY = Grid.Height - emptySpaces + i;
+                    int spawnY = Grid.Height + i;
+                    var chosenColor = availableColors[random.Next(availableColors.Length)];
+                    var newPiece = new PieceData(x, targetY, chosenColor, PieceType.Normal);
+                    Grid.Set(x, targetY, newPiece);
+                    spawnedPieces.Add(newPiece);
+                    fallInfoList.Add(new PieceFallInfo(x, spawnY, x, targetY));
+                }
+            }
+
+            return fallInfoList;
+        }
+
         private void SwapInGrid(int x1, int y1, int x2, int y2)
         {
             var p1 = Grid.Get(x1, y1);
