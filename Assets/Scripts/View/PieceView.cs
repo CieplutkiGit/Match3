@@ -12,9 +12,10 @@ namespace Match3.View
         private SpriteRenderer _spriteRenderer;
 
         public PieceColor Color { get; private set; }
-        public PieceType Type  { get; private set; }
+        public PieceType Type { get; private set; }
         public int X { get; private set; }
         public int Y { get; private set; }
+        public Color TintColor => _spriteRenderer.color;
 
         private void Awake()
         {
@@ -26,15 +27,15 @@ namespace Match3.View
             X = x;
             Y = y;
             Color = color;
-            Type  = type;
+            Type = type;
             _spriteRenderer.sprite = sprite;
-            transform.localScale   = Vector3.one;
-            _spriteRenderer.color  = type switch
+            transform.localScale = Vector3.one;
+            _spriteRenderer.color = type switch
             {
                 PieceType.HorizontalLine => new UnityEngine.Color(0.4f, 0.8f, 1f),
-                PieceType.VerticalLine   => new UnityEngine.Color(1f,   0.8f, 0.2f),
-                PieceType.Bomb           => new UnityEngine.Color(1f,   0.3f, 0.3f),
-                _                        => UnityEngine.Color.white,
+                PieceType.VerticalLine => new UnityEngine.Color(1f, 0.8f, 0.2f),
+                PieceType.Bomb => new UnityEngine.Color(1f, 0.3f, 0.3f),
+                _ => UnityEngine.Color.white,
             };
         }
 
@@ -42,6 +43,13 @@ namespace Match3.View
         {
             X = x;
             Y = y;
+        }
+
+        public void ReactToShockwave(float delay, float strength)
+        {
+            DOTween.Sequence()
+                .PrependInterval(delay)
+                .Append(transform.DOPunchScale(Vector3.one * strength, 0.45f, 10, 0.6f));
         }
 
         public void MoveTo(Vector3 targetWorldPos, float duration, Ease ease = Ease.OutCubic, Action onComplete = null)
@@ -96,25 +104,25 @@ namespace Match3.View
             for (int i = 0; i < count; i++)
             {
                 var particle = new GameObject();
-                particle.transform.position   = transform.position;
+                particle.transform.position = transform.position;
                 particle.transform.localScale = Vector3.one * UnityEngine.Random.Range(0.1f, 0.25f);
 
                 var sr = particle.AddComponent<SpriteRenderer>();
-                sr.sprite           = sprite;
-                sr.color            = baseColor;
+                sr.sprite = sprite;
+                sr.color = baseColor;
                 sr.sortingLayerName = _spriteRenderer.sortingLayerName;
-                sr.sortingOrder     = _spriteRenderer.sortingOrder + 1;
+                sr.sortingOrder = _spriteRenderer.sortingOrder + 1;
 
-                float angle  = (360f / count) * i + UnityEngine.Random.Range(-30f, 30f);
-                float dist   = UnityEngine.Random.Range(0.2f, 0.6f);
+                float angle = (360f / count) * i + UnityEngine.Random.Range(-30f, 30f);
+                float dist = UnityEngine.Random.Range(0.2f, 0.6f);
                 Vector3 dest = transform.position + Quaternion.Euler(0f, 0f, angle) * Vector3.right * dist;
-                float dur    = duration * UnityEngine.Random.Range(0.5f, 1f);
+                float dur = duration * UnityEngine.Random.Range(0.5f, 1f);
 
                 particle.transform.DOMove(dest, dur).SetEase(Ease.OutQuad);
                 particle.transform.DOScale(0f, dur).SetEase(Ease.InQuad);
                 var capturedSr = sr;
                 DOTween.To(() => capturedSr.color,
-                           c  => capturedSr.color = c,
+                           c => capturedSr.color = c,
                            new UnityEngine.Color(baseColor.r, baseColor.g, baseColor.b, 0f),
                            dur)
                     .SetEase(Ease.InQuad)

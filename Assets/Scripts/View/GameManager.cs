@@ -21,8 +21,8 @@ namespace Match3.View
         private int _score;
         private int _movesLeft;
 
-        public int Score       => _score;
-        public int MovesLeft   => _movesLeft;
+        public int Score => _score;
+        public int MovesLeft => _movesLeft;
         public int TargetScore => _levelSettings != null ? _levelSettings.TargetScore : 0;
 
         public event Action<int> OnScoreChanged;
@@ -33,15 +33,41 @@ namespace Match3.View
         private void Start()
         {
             _matchDetector = new MatchDetector();
-            _boardSystem   = new BoardSystem(_levelSettings, _matchDetector);
+            _boardSystem = new BoardSystem(_levelSettings, _matchDetector);
             _boardSystem.FillBoard();
             _boardView.Initialize(_boardSystem);
 
             _movesLeft = _levelSettings.MaxMoves;
-            _score     = 0;
+            _score = 0;
+
+            new GameObject("JuiceManager").AddComponent<JuiceManager>();
+            ConfigureJuiceBar();
+            if (JuiceManager.Instance != null)
+            {
+                JuiceManager.Instance.DisplayScoreChanged += s => OnScoreChanged?.Invoke(s);
+                JuiceManager.Instance.InitializeDisplay(0, 0f);
+            }
 
             _inputManager.OnSwapRequested += HandleSwapRequested;
             _state = GameState.AwaitingInput;
+        }
+
+        private void ConfigureJuiceBar()
+        {
+            if (JuiceManager.Instance == null) return;
+
+            int gh = _boardSystem.Grid.Height;
+            Vector3 bottom = _boardView.GetWorldPosition(0, 0);
+            Vector3 top = _boardView.GetWorldPosition(0, gh - 1);
+
+            float cell = gh > 1 ? (top.y - bottom.y) / (gh - 1) : 1f;
+            float boardHeight = (top.y - bottom.y) + cell;
+            float centerY = (top.y + bottom.y) * 0.5f;
+            float barWidth = cell * 0.9f;
+            float boardLeftEdge = bottom.x - cell * 0.5f;
+            float barX = boardLeftEdge - cell * 0.7f - barWidth * 0.5f;
+
+            JuiceManager.Instance.Configure(new Vector3(barX, centerY, 0f), boardHeight, barWidth);
         }
 
         private void OnDestroy()
@@ -109,7 +135,11 @@ namespace Match3.View
                 foreach (var m in matches)
                     gained += m.MatchedPieces.Count * 10;
                 _score += gained;
-                OnScoreChanged?.Invoke(_score);
+
+                float progress = _levelSettings != null
+                    ? (float)_score / Mathf.Max(1, _levelSettings.TargetScore)
+                    : 0f;
+                JuiceManager.Instance?.SetTargets(_score, progress);
 
                 yield return StartCoroutine(_boardView.AnimateDestroy(matches));
 
@@ -117,8 +147,8 @@ namespace Match3.View
                 yield return StartCoroutine(_boardView.AnimateFall(fallInfos, spawnedPieces));
 
                 matches = _matchDetector.FindMatches(_boardSystem.Grid);
-                focusX  = -1;
-                focusY  = -1;
+                focusX = -1;
+                focusY = -1;
             }
         }
     }

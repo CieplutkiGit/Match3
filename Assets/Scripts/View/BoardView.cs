@@ -1,4 +1,3 @@
-using System;
 using System.Collections;
 using System.Collections.Generic;
 using DG.Tweening;
@@ -13,9 +12,9 @@ namespace Match3.View
     {
         [SerializeField] private PieceView _piecePrefab;
         [SerializeField] private PieceSpriteConfig _spriteConfig;
-        [SerializeField] private float _spacing       = 1.0f;
-        [SerializeField] private float _swapDuration  = 0.25f;
-        [SerializeField] private float _fallDuration  = 0.3f;
+        [SerializeField] private float _spacing = 1.0f;
+        [SerializeField] private float _swapDuration = 0.25f;
+        [SerializeField] private float _fallDuration = 0.3f;
         [SerializeField] private float _destroyDuration = 0.2f;
 
         private BoardSystem _boardSystem;
@@ -26,7 +25,7 @@ namespace Match3.View
         public void Initialize(BoardSystem boardSystem)
         {
             _boardSystem = boardSystem;
-            _pieceViews  = new PieceView[_boardSystem.Grid.Width, _boardSystem.Grid.Height];
+            _pieceViews = new PieceView[_boardSystem.Grid.Width, _boardSystem.Grid.Height];
             SpawnInitialVisuals();
         }
 
@@ -45,7 +44,7 @@ namespace Match3.View
         private PieceView SpawnAt(int x, int y, PieceColor color, PieceType type, Vector3 worldPos, bool animate)
         {
             var pieceInstance = Instantiate(_piecePrefab, worldPos, Quaternion.identity, transform);
-            var sprite        = _spriteConfig.GetSprite(color, type);
+            var sprite = _spriteConfig.GetSprite(color, type);
             pieceInstance.Setup(x, y, color, type, sprite);
             _pieceViews[x, y] = pieceInstance;
             if (animate) pieceInstance.PlaySpawnAnimation();
@@ -91,7 +90,7 @@ namespace Match3.View
             IsAnimating = true;
 
             var piecesToDestroy = new HashSet<PieceView>();
-            var specialViews    = new HashSet<PieceView>();
+            var specialViews = new HashSet<PieceView>();
 
             foreach (var match in matches)
                 foreach (var pieceData in match.MatchedPieces)
@@ -99,7 +98,7 @@ namespace Match3.View
                     var view = GetPieceView(pieceData.X, pieceData.Y);
                     if (view == null) continue;
                     piecesToDestroy.Add(view);
-                    if (pieceData.Type != PieceType.Normal)
+                    if (pieceData.Type != PieceType.Normal && pieceData.Type != PieceType.Empty)
                         specialViews.Add(view);
                 }
 
@@ -107,6 +106,24 @@ namespace Match3.View
 
             if (specialViews.Count > 0)
             {
+                int blastX = -1, blastY = -1;
+                bool found = false;
+                foreach (var match in matches)
+                {
+                    if (found) break;
+                    foreach (var pd in match.MatchedPieces)
+                        if (pd.Type != PieceType.Normal && pd.Type != PieceType.Empty)
+                        {
+                            blastX = pd.X;
+                            blastY = pd.Y;
+                            found = true;
+                            break;
+                        }
+                }
+
+                if (blastX >= 0)
+                    TriggerShockwave(blastX, blastY, piecesToDestroy);
+
                 if (Camera.main != null)
                     Camera.main.transform.DOShakePosition(0.5f, 0.45f, 20, 90f, false, true);
                 transform.DOShakePosition(0.4f, 0.28f, 16, 90f, false, true);
@@ -117,15 +134,42 @@ namespace Match3.View
 
             foreach (var view in piecesToDestroy)
             {
+                Color tint = view.TintColor;
+                Vector3 pos = view.transform.position;
+
+                if (JuiceManager.Instance != null)
+                    JuiceManager.Instance.Collect(pos, tint);
+
                 _pieceViews[view.X, view.Y] = null;
+
                 if (specialViews.Contains(view))
-                    view.PlaySpecialDestroyAnimation(_destroyDuration * 2.5f, () => { animatingCount--; if (animatingCount <= 0) done = true; });
+                    view.PlaySpecialDestroyAnimation(_destroyDuration * 2.5f,
+                        () => { animatingCount--; if (animatingCount <= 0) done = true; });
                 else
-                    view.PlayDestroyAnimation(_destroyDuration, () => { animatingCount--; if (animatingCount <= 0) done = true; });
+                    view.PlayDestroyAnimation(_destroyDuration,
+                        () => { animatingCount--; if (animatingCount <= 0) done = true; });
             }
 
             yield return new WaitUntil(() => done);
             IsAnimating = false;
+        }
+
+        private void TriggerShockwave(int cx, int cy, HashSet<PieceView> excluded)
+        {
+            int w = _pieceViews.GetLength(0);
+            int h = _pieceViews.GetLength(1);
+            for (int x = 0; x < w; x++)
+            {
+                for (int y = 0; y < h; y++)
+                {
+                    var view = _pieceViews[x, y];
+                    if (view == null || excluded.Contains(view)) continue;
+                    float dist = Vector2.Distance(new Vector2(x, y), new Vector2(cx, cy));
+                    float delay = dist * 0.04f;
+                    float strength = Mathf.Lerp(0.6f, 0.15f, Mathf.Clamp01(dist / 9f));
+                    view.ReactToShockwave(delay, strength);
+                }
+            }
         }
 
         public IEnumerator AnimateFall(List<PieceFallInfo> fallInfos, List<PieceData> spawnedPieces)
@@ -133,8 +177,8 @@ namespace Match3.View
             IsAnimating = true;
 
             var spawnedPieceSet = new HashSet<PieceData>(spawnedPieces);
-            int tweensComplete  = 0;
-            int totalTweens     = fallInfos.Count;
+            int tweensComplete = 0;
+            int totalTweens = fallInfos.Count;
 
             if (totalTweens == 0) { IsAnimating = false; yield break; }
 
@@ -161,13 +205,15 @@ namespace Match3.View
                 PieceView view;
 
                 if (data != null && spawnedPieceSet.Contains(data))
-                    view = SpawnAt(info.ToX, info.ToY, data.Color, data.Type, GetWorldPosition(info.FromX, info.FromY), false);
+                    view = SpawnAt(info.ToX, info.ToY, data.Color, data.Type,
+                                   GetWorldPosition(info.FromX, info.FromY), false);
                 else
                     view = _pieceViews[info.ToX, info.ToY];
 
                 if (view == null) { tweensComplete++; continue; }
 
-                view.MoveTo(GetWorldPosition(info.ToX, info.ToY), _fallDuration, Ease.OutBounce, () => tweensComplete++);
+                view.MoveTo(GetWorldPosition(info.ToX, info.ToY), _fallDuration, Ease.OutBounce,
+                            () => tweensComplete++);
             }
 
             yield return new WaitUntil(() => tweensComplete >= totalTweens);
@@ -176,7 +222,7 @@ namespace Match3.View
 
         public Vector3 GetWorldPosition(int x, int y)
         {
-            float xPos = (x - (_boardSystem.Grid.Width  - 1) * 0.5f) * _spacing;
+            float xPos = (x - (_boardSystem.Grid.Width - 1) * 0.5f) * _spacing;
             float yPos = (y - (_boardSystem.Grid.Height - 1) * 0.5f) * _spacing;
             return new Vector3(xPos, yPos, 0f) + transform.position;
         }

@@ -11,7 +11,7 @@ namespace Match3.Core
         private readonly LevelSettings _levelSettings;
         private readonly IMatchDetector _matchDetector;
         private readonly List<PieceData> _keptSpecialPieces = new List<PieceData>();
-        private readonly List<PieceData> _blastPieces       = new List<PieceData>();
+        private readonly List<PieceData> _blastPieces = new List<PieceData>();
 
         public IReadOnlyList<PieceData> LastBlastPieces => _blastPieces;
 
@@ -167,9 +167,9 @@ namespace Match3.Core
 
         public List<PieceFallInfo> ApplyGravityAndRefill(out List<PieceData> spawnedPieces)
         {
-            var fallInfoList    = new List<PieceFallInfo>();
-            spawnedPieces       = new List<PieceData>();
-            var random          = new Random();
+            var fallInfoList = new List<PieceFallInfo>();
+            spawnedPieces = new List<PieceData>();
+            var random = new Random();
             var availableColors = _levelSettings.AvailableColors;
 
             for (int x = 0; x < Grid.Width; x++)
@@ -194,9 +194,9 @@ namespace Match3.Core
 
                 for (int i = 0; i < emptySpaces; i++)
                 {
-                    int targetY  = Grid.Height - emptySpaces + i;
-                    int spawnY   = Grid.Height + i;
-                    var color    = availableColors[random.Next(availableColors.Length)];
+                    int targetY = Grid.Height - emptySpaces + i;
+                    int spawnY = Grid.Height + i;
+                    var color = availableColors[random.Next(availableColors.Length)];
                     var newPiece = new PieceData(x, targetY, color, PieceType.Normal);
                     Grid.Set(x, targetY, newPiece);
                     spawnedPieces.Add(newPiece);
