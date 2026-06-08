@@ -16,14 +16,13 @@ namespace Match3.View
 
         private BoardSystem _boardSystem;
         private MatchDetector _matchDetector;
-
         private GameState _state = GameState.Initializing;
 
         private int _score;
         private int _movesLeft;
 
-        public int Score => _score;
-        public int MovesLeft => _movesLeft;
+        public int Score       => _score;
+        public int MovesLeft   => _movesLeft;
         public int TargetScore => _levelSettings != null ? _levelSettings.TargetScore : 0;
 
         public event Action<int> OnScoreChanged;
@@ -34,15 +33,14 @@ namespace Match3.View
         private void Start()
         {
             _matchDetector = new MatchDetector();
-            _boardSystem = new BoardSystem(_levelSettings, _matchDetector);
+            _boardSystem   = new BoardSystem(_levelSettings, _matchDetector);
             _boardSystem.FillBoard();
             _boardView.Initialize(_boardSystem);
 
             _movesLeft = _levelSettings.MaxMoves;
-            _score = 0;
+            _score     = 0;
 
             _inputManager.OnSwapRequested += HandleSwapRequested;
-
             _state = GameState.AwaitingInput;
         }
 
@@ -63,7 +61,6 @@ namespace Match3.View
             _state = GameState.Animating;
 
             bool validSwap = _boardSystem.TrySwap(x1, y1, x2, y2, out List<MatchResult> matches);
-
             yield return StartCoroutine(_boardView.AnimateSwap(x1, y1, x2, y2, !validSwap));
 
             if (!validSwap)
@@ -75,8 +72,6 @@ namespace Match3.View
             _movesLeft--;
             OnMovesChanged?.Invoke(_movesLeft);
 
-            // Focus is the cell the user's piece landed on (x2,y2) so ClearMatches
-            // can find it by its updated PieceData.X/Y (kept in sync by SwapInGrid).
             yield return StartCoroutine(ProcessChainReaction(matches, x2, y2));
 
             if (_score >= _levelSettings.TargetScore)
@@ -100,22 +95,30 @@ namespace Match3.View
         {
             while (matches != null && matches.Count > 0)
             {
+                _boardSystem.ClearMatches(matches, focusX, focusY);
+
+                if (_boardSystem.LastBlastPieces.Count > 0)
+                {
+                    var blastResult = new MatchResult();
+                    foreach (var p in _boardSystem.LastBlastPieces)
+                        blastResult.AddPiece(p);
+                    matches.Add(blastResult);
+                }
+
                 int gained = 0;
                 foreach (var m in matches)
                     gained += m.MatchedPieces.Count * 10;
-
                 _score += gained;
                 OnScoreChanged?.Invoke(_score);
 
-                _boardSystem.ClearMatches(matches, focusX, focusY);
                 yield return StartCoroutine(_boardView.AnimateDestroy(matches));
 
                 var fallInfos = _boardSystem.ApplyGravityAndRefill(out List<PieceData> spawnedPieces);
                 yield return StartCoroutine(_boardView.AnimateFall(fallInfos, spawnedPieces));
 
                 matches = _matchDetector.FindMatches(_boardSystem.Grid);
-                focusX = -1;
-                focusY = -1;
+                focusX  = -1;
+                focusY  = -1;
             }
         }
     }
