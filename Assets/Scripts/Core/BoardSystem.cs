@@ -52,6 +52,43 @@ namespace Match3.Core
             OnBoardGenerated?.Invoke();
         }
 
+        public bool TrySwap(int x1, int y1, int x2, int y2, out List<MatchResult> matches)
+        {
+            matches = new List<MatchResult>();
+
+            if (!Grid.IsValidPosition(x1, y1) || !Grid.IsValidPosition(x2, y2))
+            {
+                return false;
+            }
+
+            int dx = Math.Abs(x1 - x2);
+            int dy = Math.Abs(y1 - y2);
+            if ((dx == 1 && dy == 0) || (dx == 0 && dy == 1))
+            {
+                SwapInGrid(x1, y1, x2, y2);
+
+                matches = _matchDetector.FindMatches(Grid);
+                if (matches.Count > 0)
+                {
+                    OnPiecesSwapped?.Invoke(x1, y1, x2, y2);
+                    return true;
+                }
+
+                SwapInGrid(x1, y1, x2, y2);
+            }
+
+            return false;
+        }
+
+        private void SwapInGrid(int x1, int y1, int x2, int y2)
+        {
+            var p1 = Grid.Get(x1, y1);
+            var p2 = Grid.Get(x2, y2);
+
+            Grid.Set(x1, y1, p2);
+            Grid.Set(x2, y2, p1);
+        }
+
         private bool IsValidInitialColor(int x, int y, PieceColor color)
         {
             if (x >= 2)
