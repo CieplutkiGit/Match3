@@ -29,6 +29,14 @@ namespace Match3.View
             Type = type;
             _spriteRenderer.sprite = sprite;
             transform.localScale = Vector3.one;
+
+            _spriteRenderer.color = type switch
+            {
+                PieceType.HorizontalLine => new UnityEngine.Color(0.4f, 0.8f, 1f),  
+                PieceType.VerticalLine   => new UnityEngine.Color(1f,   0.8f, 0.2f), 
+                PieceType.Bomb           => new UnityEngine.Color(1f,   0.3f, 0.3f), 
+                _                        => UnityEngine.Color.white,
+            };
         }
 
         public void UpdatePosition(int x, int y)
@@ -49,6 +57,19 @@ namespace Match3.View
                 onComplete?.Invoke();
                 Destroy(gameObject);
             });
+        }
+
+        public void PlaySpecialDestroyAnimation(float duration, Action onComplete = null)
+        {
+            transform.DOKill();
+            DOTween.Sequence()
+                .Append(transform.DOScale(Vector3.one * 1.8f, duration * 0.2f).SetEase(Ease.OutQuad))
+                .Append(transform.DOScale(Vector3.zero, duration * 0.8f).SetEase(Ease.InExpo))
+                .OnComplete(() =>
+                {
+                    onComplete?.Invoke();
+                    Destroy(gameObject);
+                });
         }
 
         public void PlaySpawnAnimation()

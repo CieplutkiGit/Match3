@@ -50,7 +50,6 @@ namespace Match3.View
         {
             var pieceInstance = Instantiate(_piecePrefab, worldPos, Quaternion.identity, transform);
             var sprite = _spriteConfig.GetSprite(color, type);
-            Debug.Log($"[SpawnAt] ({x},{y}) color={color} type={type} sprite={(sprite != null ? sprite.name : "NULL")}");
             pieceInstance.Setup(x, y, color, type, sprite);
             _pieceViews[x, y] = pieceInstance;
 
@@ -113,6 +112,8 @@ namespace Match3.View
             IsAnimating = true;
 
             var piecesToDestroy = new HashSet<PieceView>();
+            var specialViews    = new HashSet<PieceView>(); 
+
             foreach (var match in matches)
             {
                 foreach (var pieceData in match.MatchedPieces)
@@ -121,6 +122,8 @@ namespace Match3.View
                     if (view != null)
                     {
                         piecesToDestroy.Add(view);
+                        if (pieceData.Type != PieceType.Normal)
+                            specialViews.Add(view);
                     }
                 }
             }
@@ -130,6 +133,12 @@ namespace Match3.View
                 IsAnimating = false;
                 yield break;
             }
+            if (specialViews.Count > 0)
+            {
+                if (Camera.main != null)
+                    Camera.main.transform.DOShakePosition(0.5f, 0.45f, 20, 90f, false, true);
+                transform.DOShakePosition(0.4f, 0.28f, 16, 90f, false, true);
+            }
 
             int animatingCount = piecesToDestroy.Count;
             bool done = false;
@@ -137,11 +146,19 @@ namespace Match3.View
             foreach (var view in piecesToDestroy)
             {
                 _pieceViews[view.X, view.Y] = null;
-                view.PlayDestroyAnimation(_destroyDuration, () =>
-                {
-                    animatingCount--;
-                    if (animatingCount <= 0) done = true;
-                });
+
+                if (specialViews.Contains(view))
+                    view.PlaySpecialDestroyAnimation(_destroyDuration * 2.5f, () =>
+                    {
+                        animatingCount--;
+                        if (animatingCount <= 0) done = true;
+                    });
+                else
+                    view.PlayDestroyAnimation(_destroyDuration, () =>
+                    {
+                        animatingCount--;
+                        if (animatingCount <= 0) done = true;
+                    });
             }
 
             yield return new WaitUntil(() => done);
