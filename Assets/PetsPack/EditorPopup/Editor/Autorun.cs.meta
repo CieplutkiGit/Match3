@@ -1,0 +1,19 @@
+fileFormatVersion: 2
+guid: ad4260cd1bf08455aa3d24ebd59932ec
+timeCreated: 1477908880
+licenseType: Store
+MonoImporter:
+  serializedVersion: 2
+  defaultReferences: []
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 73033
+  packageName: Match 3 - Pets Sprite Mega Pack
+  packageVersion: 1.0.0b
+  assetPath: Assets/PetsPack/EditorPopup/Editor/Autorun.cs
+  uploadId: 159671

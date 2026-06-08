@@ -1,0 +1,11 @@
+{
+    "name": "Match3.View",
+    "rootNamespace": "Match3.View",
+    "references": [
+        "Match3.Model",
+        "Match3.Core",
+        "Match3.Data",
+        "Unity.InputSystem"
+    ],
+    "autoReferenced": true
+}

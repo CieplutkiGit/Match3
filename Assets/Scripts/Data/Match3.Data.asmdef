@@ -1,0 +1,8 @@
+{
+    "name": "Match3.Data",
+    "rootNamespace": "Match3.Data",
+    "references": [
+        "Match3.Model"
+    ],
+    "autoReferenced": true
+}

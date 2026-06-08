@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 7df954ccf4e4740a8a8ebe012114cffd
+timeCreated: 1483110692
+licenseType: Store
+NativeFormatImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 73033
+  packageName: Match 3 - Pets Sprite Mega Pack
+  packageVersion: 1.0.0b
+  assetPath: Assets/PetsPack/EditorPopup/Editor/CanvasMoreGame.prefab
+  uploadId: 159671
