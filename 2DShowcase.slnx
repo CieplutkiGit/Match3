@@ -1,4 +1,9 @@
 ﻿<Solution>
+  <Project Path="Assembly-CSharp-firstpass.csproj" />
+  <Project Path="Match3.Core.csproj" />
+  <Project Path="Match3.View.csproj" />
+  <Project Path="Match3.Model.csproj" />
   <Project Path="Assembly-CSharp-Editor.csproj" />
+  <Project Path="Match3.Data.csproj" />
   <Project Path="Assembly-CSharp.csproj" />
 </Solution>

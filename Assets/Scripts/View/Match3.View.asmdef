@@ -5,7 +5,11 @@
         "Match3.Model",
         "Match3.Core",
         "Match3.Data",
-        "Unity.InputSystem"
+        "UnityEngine",
+        "DOTween",
+        "Unity.InputSystem",
+        "UnityEngine.UI",
+        "Unity.TextMeshPro"
     ],
     "autoReferenced": true
 }

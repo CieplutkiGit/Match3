@@ -10,6 +10,7 @@ namespace Match3.Core
         public GridData Grid { get; private set; }
         private readonly LevelSettings _levelSettings;
         private readonly IMatchDetector _matchDetector;
+        private readonly List<PieceData> _keptSpecialPieces = new List<PieceData>();
 
         public event Action<int, int, int, int> OnPiecesSwapped;
         public event Action OnBoardGenerated;
@@ -82,6 +83,7 @@ namespace Match3.Core
 
         public void ClearMatches(List<MatchResult> matches, int focusX = -1, int focusY = -1)
         {
+            _keptSpecialPieces.Clear();
             foreach (var match in matches)
             {
                 PieceData specialSpawnPiece = null;
@@ -106,6 +108,7 @@ namespace Match3.Core
                     if (p == specialSpawnPiece)
                     {
                         p.Type = match.GeneratedSpecialType;
+                        _keptSpecialPieces.Add(p);
                     }
                     else
                     {
@@ -136,6 +139,8 @@ namespace Match3.Core
                     {
                         Grid.Set(x, y - emptySpaces, current);
                         Grid.Set(x, y, null);
+                        current.X = x;
+                        current.Y = y - emptySpaces;  // keep X/Y in sync after gravity drop
                         fallInfoList.Add(new PieceFallInfo(x, y, x, y - emptySpaces));
                     }
                 }
@@ -152,6 +157,35 @@ namespace Match3.Core
                 }
             }
 
+            // Special pieces kept in grid during ClearMatches had their views destroyed by
+            // AnimateDestroy. Add them to spawnedPieces so AnimateFall recreates their views.
+            // After the gravity loop above, special.X/Y already reflect the final position.
+            // If gravity moved the piece there is already a FallInfo whose ToX/ToY matches
+            // the piece — AnimateFall will handle it via spawnedPieceSet.  Only add a
+            // self-referencing dummy FallInfo when no such gravity entry exists (in-place case).
+            foreach (var special in _keptSpecialPieces)
+            {
+                spawnedPieces.Add(special);
+
+                bool gravityCoversThisPiece = false;
+                foreach (var fi in fallInfoList)
+                {
+                    if (fi.ToX == special.X && fi.ToY == special.Y &&
+                        Grid.Get(fi.ToX, fi.ToY) == special)
+                    {
+                        gravityCoversThisPiece = true;
+                        break;
+                    }
+                }
+
+                if (!gravityCoversThisPiece)
+                {
+                    // Piece stayed in place — self-referencing entry triggers a view spawn.
+                    fallInfoList.Add(new PieceFallInfo(special.X, special.Y, special.X, special.Y));
+                }
+            }
+            _keptSpecialPieces.Clear();
+
             return fallInfoList;
         }
 
@@ -162,6 +196,11 @@ namespace Match3.Core
 
             Grid.Set(x1, y1, p2);
             Grid.Set(x2, y2, p1);
+
+            // Keep PieceData.X/Y in sync with actual grid positions so that
+            // AnimateDestroy and ClearMatches look up the correct views/cells.
+            if (p1 != null) { p1.X = x2; p1.Y = y2; }
+            if (p2 != null) { p2.X = x1; p2.Y = y1; }
         }
 
         private bool IsValidInitialColor(int x, int y, PieceColor color)

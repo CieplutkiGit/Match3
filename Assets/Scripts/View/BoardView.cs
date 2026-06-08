@@ -50,6 +50,7 @@ namespace Match3.View
         {
             var pieceInstance = Instantiate(_piecePrefab, worldPos, Quaternion.identity, transform);
             var sprite = _spriteConfig.GetSprite(color, type);
+            Debug.Log($"[SpawnAt] ({x},{y}) color={color} type={type} sprite={(sprite != null ? sprite.name : "NULL")}");
             pieceInstance.Setup(x, y, color, type, sprite);
             _pieceViews[x, y] = pieceInstance;
 

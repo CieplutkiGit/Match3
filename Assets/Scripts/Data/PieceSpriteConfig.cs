@@ -24,16 +24,18 @@ namespace Match3.Data
             {
                 if (item.Color == color)
                 {
+                    // Use Unity's != null (not C# ??) so unassigned Unity objects are
+                    // correctly treated as null and fall back to NormalSprite.
                     switch (type)
                     {
-                        case PieceType.Normal: 
+                        case PieceType.Bomb:
+                            return item.BombSprite != null ? item.BombSprite : item.NormalSprite;
+                        case PieceType.HorizontalLine:
+                            return item.HorizontalLineSprite != null ? item.HorizontalLineSprite : item.NormalSprite;
+                        case PieceType.VerticalLine:
+                            return item.VerticalLineSprite != null ? item.VerticalLineSprite : item.NormalSprite;
+                        default:
                             return item.NormalSprite;
-                        case PieceType.Bomb: 
-                            return item.BombSprite ?? item.NormalSprite;
-                        case PieceType.HorizontalLine: 
-                            return item.HorizontalLineSprite ?? item.NormalSprite;
-                        case PieceType.VerticalLine: 
-                            return item.VerticalLineSprite ?? item.NormalSprite;
                     }
                 }
             }

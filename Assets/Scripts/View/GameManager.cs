@@ -75,7 +75,9 @@ namespace Match3.View
             _movesLeft--;
             OnMovesChanged?.Invoke(_movesLeft);
 
-            yield return StartCoroutine(ProcessChainReaction(matches, x1, y1));
+            // Focus is the cell the user's piece landed on (x2,y2) so ClearMatches
+            // can find it by its updated PieceData.X/Y (kept in sync by SwapInGrid).
+            yield return StartCoroutine(ProcessChainReaction(matches, x2, y2));
 
             if (_score >= _levelSettings.TargetScore)
             {

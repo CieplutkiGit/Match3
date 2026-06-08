@@ -3,7 +3,8 @@
     "rootNamespace": "Match3.Core",
     "references": [
         "Match3.Model",
-        "Match3.Data"
+        "Match3.Data",
+        "UnityEngine"
     ],
     "autoReferenced": true
 }
