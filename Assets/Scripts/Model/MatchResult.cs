@@ -5,7 +5,7 @@ namespace Match3.Model
     public class MatchResult
     {
         public List<PieceData> MatchedPieces { get; private set; }
-        public PieceType GeneratedSpecialType { get; private set; }
+        public PieceType GeneratedSpecialType { get; set; }
 
         public MatchResult()
         {
