@@ -1,10 +1,10 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using Match3.Core;
 using Match3.Data;
 using Match3.Model;
-using Match3.View;
 
 namespace Match3.View
 {
@@ -25,10 +25,11 @@ namespace Match3.View
         public int Score => _score;
         public int MovesLeft => _movesLeft;
 
-        public event System.Action<int> OnScoreChanged;
-        public event System.Action<int> OnMovesChanged;
-        public event System.Action OnWin;
-        public event System.Action OnLose;
+        public event Action<int> OnScoreChanged;
+        public event Action<int> OnMovesChanged;
+        public event Action<int> OnTargetScoreSet;
+        public event Action OnWin;
+        public event Action OnLose;
 
         private void Start()
         {
@@ -40,6 +41,10 @@ namespace Match3.View
             _movesLeft = _levelSettings.MaxMoves;
             _score = 0;
 
+            OnTargetScoreSet?.Invoke(_levelSettings.TargetScore);
+            OnScoreChanged?.Invoke(_score);
+            OnMovesChanged?.Invoke(_movesLeft);
+
             _inputManager.OnSwapRequested += HandleSwapRequested;
 
             _state = GameState.AwaitingInput;
@@ -48,9 +53,7 @@ namespace Match3.View
         private void OnDestroy()
         {
             if (_inputManager != null)
-            {
                 _inputManager.OnSwapRequested -= HandleSwapRequested;
-            }
         }
 
         private void HandleSwapRequested(int x1, int y1, int x2, int y2)
@@ -101,9 +104,7 @@ namespace Match3.View
             {
                 int gained = 0;
                 foreach (var m in matches)
-                {
                     gained += m.MatchedPieces.Count * 10;
-                }
 
                 _score += gained;
                 OnScoreChanged?.Invoke(_score);

@@ -1,5 +1,5 @@
 using UnityEngine;
-using UnityEngine.UI;
+using UnityEngine.SceneManagement;
 using TMPro;
 
 namespace Match3.View
@@ -13,14 +13,8 @@ namespace Match3.View
         [SerializeField] private GameObject _losePanel;
         [SerializeField] private GameManager _gameManager;
 
-        private int _targetScore;
-
         private void Start()
         {
-            _targetScore = FindFirstObjectByType<GameManager>() != null
-                ? 0
-                : 0;
-
             _winPanel.SetActive(false);
             _losePanel.SetActive(false);
 
@@ -28,9 +22,7 @@ namespace Match3.View
             _gameManager.OnMovesChanged += UpdateMoves;
             _gameManager.OnWin += ShowWin;
             _gameManager.OnLose += ShowLose;
-
-            UpdateScore(_gameManager.Score);
-            UpdateMoves(_gameManager.MovesLeft);
+            _gameManager.OnTargetScoreSet += UpdateTargetScore;
         }
 
         private void OnDestroy()
@@ -40,47 +32,42 @@ namespace Match3.View
             _gameManager.OnMovesChanged -= UpdateMoves;
             _gameManager.OnWin -= ShowWin;
             _gameManager.OnLose -= ShowLose;
+            _gameManager.OnTargetScoreSet -= UpdateTargetScore;
         }
 
         private void UpdateScore(int score)
         {
             if (_scoreText != null)
-            {
                 _scoreText.text = score.ToString();
-            }
         }
 
         private void UpdateMoves(int moves)
         {
             if (_movesText != null)
-            {
                 _movesText.text = moves.ToString();
-            }
+        }
+
+        private void UpdateTargetScore(int target)
+        {
+            if (_targetScoreText != null)
+                _targetScoreText.text = target.ToString();
         }
 
         private void ShowWin()
         {
             if (_winPanel != null)
-            {
                 _winPanel.SetActive(true);
-            }
         }
 
         private void ShowLose()
         {
             if (_losePanel != null)
-            {
                 _losePanel.SetActive(true);
-            }
         }
 
-        public void SetTargetScore(int target)
+        public void OnRestartPressed()
         {
-            _targetScore = target;
-            if (_targetScoreText != null)
-            {
-                _targetScoreText.text = target.ToString();
-            }
+            SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
         }
     }
 }
