@@ -2,9 +2,8 @@
     "name": "Match3.Core",
     "rootNamespace": "Match3.Core",
     "references": [
-        "Match3.Model",
-        "Match3.Data",
-        "UnityEngine"
+        "Match3.Model"
     ],
+    "noEngineReferences": true,
     "autoReferenced": true
 }

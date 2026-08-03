@@ -2,5 +2,6 @@
     "name": "Match3.Model",
     "rootNamespace": "Match3.Model",
     "references": [],
+    "noEngineReferences": true,
     "autoReferenced": true
 }

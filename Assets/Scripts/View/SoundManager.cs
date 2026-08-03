@@ -2,7 +2,7 @@ using UnityEngine;
 
 namespace Match3.View
 {
-    public class SoundManager : MonoBehaviour
+    public sealed class SoundManager : MonoBehaviour
     {
         public static SoundManager Instance { get; private set; }
 
@@ -98,6 +98,12 @@ namespace Match3.View
 
         private void Awake()
         {
+            if (Instance != null && Instance != this)
+            {
+                enabled = false;
+                return;
+            }
+
             Instance = this;
 
             _popClip = ProceduralAudio.Build("pop", _pop);
@@ -114,6 +120,12 @@ namespace Match3.View
                 source.playOnAwake = false;
                 _sources[i] = source;
             }
+        }
+
+        private void OnDestroy()
+        {
+            if (Instance == this)
+                Instance = null;
         }
 
         public void PlaySwap()

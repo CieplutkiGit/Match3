@@ -4,7 +4,7 @@ using UnityEngine;
 
 namespace Match3.View
 {
-    public class JuiceManager : MonoBehaviour
+    public sealed class JuiceManager : MonoBehaviour
     {
         public static JuiceManager Instance { get; private set; }
 
@@ -13,16 +13,45 @@ namespace Match3.View
 
         private readonly SandBar _bar = new SandBar();
         private readonly AnimatedScore _score = new AnimatedScore();
+        private bool _configured;
 
         private void Awake()
         {
+            if (Instance != null && Instance != this)
+            {
+                enabled = false;
+                return;
+            }
+
             Instance = this;
-            _score.Changed += v => DisplayScoreChanged?.Invoke(v);
+            _score.Changed += HandleScoreChanged;
+        }
+
+        private void OnEnable()
+        {
+            if (_configured)
+                StartCoroutine(AmbientRoutine());
+        }
+
+        private void OnDisable()
+        {
+            StopAllCoroutines();
+        }
+
+        private void OnDestroy()
+        {
+            _score.Changed -= HandleScoreChanged;
+            if (Instance == this)
+                Instance = null;
         }
 
         public void Configure(Vector3 center, float height, float width)
         {
+            if (_configured)
+                return;
+
             _bar.Build(transform, center, height, width);
+            _configured = true;
             StartCoroutine(AmbientRoutine());
         }
 
@@ -43,6 +72,11 @@ namespace Match3.View
             SpawnToBar(from, color);
             SpawnToScore(from, color);
             ParticleSpawner.Debris(from, color);
+        }
+
+        private void HandleScoreChanged(int score)
+        {
+            DisplayScoreChanged?.Invoke(score);
         }
 
         private void SpawnToBar(Vector3 from, Color color)

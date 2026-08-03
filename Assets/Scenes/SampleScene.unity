@@ -252,6 +252,8 @@ MonoBehaviour:
   _levelSettings: {fileID: 11400000, guid: a1a2a3a4b1b2b3b4c1c2c3c4d1d2d3d4, type: 2}
   _boardView: {fileID: 1000012}
   _inputManager: {fileID: 1000022}
+  _soundManager: {fileID: 1000202}
+  _juiceManager: {fileID: 1000212}
 --- !u!1 &1000010
 GameObject:
   m_ObjectHideFlags: 0
@@ -301,6 +303,8 @@ MonoBehaviour:
   _swapDuration: 0.25
   _fallDuration: 0.3
   _destroyDuration: 0.2
+  _juiceBarWidthRatio: 0.9
+  _juiceBarOffset: 0.7
 --- !u!1 &1000020
 GameObject:
   m_ObjectHideFlags: 0
@@ -468,6 +472,11 @@ MonoBehaviour:
   _winPanel: {fileID: 1000080}
   _losePanel: {fileID: 1000120}
   _gameManager: {fileID: 1000003}
+  _juiceManager: {fileID: 1000212}
+  _scorePunchScale: 0.3
+  _scorePunchDuration: 0.25
+  _scorePunchVibrato: 6
+  _scorePunchElasticity: 0.6
 --- !u!1 &1000040
 GameObject:
   m_ObjectHideFlags: 0
@@ -1878,3 +1887,46 @@ MonoBehaviour:
     waveform: 0
     sawMix: 0.3
     volume: 0.4
+--- !u!1 &1000210
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1000211}
+  - component: {fileID: 1000212}
+  m_Layer: 0
+  m_Name: JuiceManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1000211
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1000210}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_RootOrder: 11
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1000212
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1000210}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9a6f6ef18a5c78142a11844847693c8c, type: 3}
+  m_Name:
+  m_EditorClassIdentifier:

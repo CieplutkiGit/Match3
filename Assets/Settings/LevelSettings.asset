@@ -16,6 +16,12 @@ MonoBehaviour:
   GridHeight: 8
   MaxMoves: 20
   TargetScore: 1000
+  PointsPerPiece: 10
+  RandomSeed: 12345
+  MinimumMatchLength: 3
+  LineSpecialLength: 4
+  BombSpecialLength: 5
+  BombRadius: 1
   AvailableColors:
   - 1
   - 2

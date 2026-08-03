@@ -5,6 +5,8 @@ namespace Match3.Core
 {
     public class MatchDetector : IMatchDetector
     {
+        private readonly MatchRules _rules;
+
         private class RawRun
         {
             public List<PieceData> Pieces { get; } = new List<PieceData>();
@@ -15,6 +17,11 @@ namespace Match3.Core
                 Pieces = pieces;
                 IsHorizontal = isHorizontal;
             }
+        }
+
+        public MatchDetector(MatchRules rules)
+        {
+            _rules = rules ?? throw new System.ArgumentNullException(nameof(rules));
         }
 
         public List<MatchResult> FindMatches(IGrid<PieceData> grid)
@@ -42,7 +49,7 @@ namespace Match3.Core
                         }
                         else
                         {
-                            if (runLength >= 3)
+                            if (runLength >= _rules.MinimumMatchLength)
                             {
                                 var runPieces = new List<PieceData>();
                                 for (int i = 0; i < runLength; i++)
@@ -56,7 +63,7 @@ namespace Match3.Core
                     }
                     else
                     {
-                        if (runLength >= 3)
+                        if (runLength >= _rules.MinimumMatchLength)
                         {
                             var runPieces = new List<PieceData>();
                             for (int i = 0; i < runLength; i++)
@@ -91,7 +98,7 @@ namespace Match3.Core
                         }
                         else
                         {
-                            if (runLength >= 3)
+                            if (runLength >= _rules.MinimumMatchLength)
                             {
                                 var runPieces = new List<PieceData>();
                                 for (int i = 0; i < runLength; i++)
@@ -105,7 +112,7 @@ namespace Match3.Core
                     }
                     else
                     {
-                        if (runLength >= 3)
+                        if (runLength >= _rules.MinimumMatchLength)
                         {
                             var runPieces = new List<PieceData>();
                             for (int i = 0; i < runLength; i++)
@@ -181,20 +188,20 @@ namespace Match3.Core
                 {
                     specialType = PieceType.Bomb;
                 }
-                else if (maxHorizontalLen >= 5 || maxVerticalLen >= 5)
+                else if (maxHorizontalLen >= _rules.BombSpecialLength || maxVerticalLen >= _rules.BombSpecialLength)
                 {
                     specialType = PieceType.Bomb;
                 }
-                else if (maxHorizontalLen == 4)
+                else if (maxHorizontalLen >= _rules.LineSpecialLength)
                 {
                     specialType = PieceType.HorizontalLine;
                 }
-                else if (maxVerticalLen == 4)
+                else if (maxVerticalLen >= _rules.LineSpecialLength)
                 {
                     specialType = PieceType.VerticalLine;
                 }
 
-                matchResult.GeneratedSpecialType = specialType;
+                matchResult.SpecialCreationType = specialType;
                 results.Add(matchResult);
             }
 

@@ -16,16 +16,29 @@ namespace Match3.View
         [SerializeField] private float _swapDuration = 0.25f;
         [SerializeField] private float _fallDuration = 0.3f;
         [SerializeField] private float _destroyDuration = 0.2f;
+        [SerializeField] private float _juiceBarWidthRatio = 0.9f;
+        [SerializeField] private float _juiceBarOffset = 0.7f;
 
         private BoardSystem _boardSystem;
         private PieceView[,] _pieceViews;
+        private JuiceManager _juiceManager;
 
         public bool IsAnimating { get; private set; }
+        public float Spacing => _spacing;
+        public float JuiceBarWidthRatio => _juiceBarWidthRatio;
+        public float JuiceBarOffset => _juiceBarOffset;
 
-        public void Initialize(BoardSystem boardSystem)
+        public void Initialize(BoardSystem boardSystem, JuiceManager juiceManager)
         {
             _boardSystem = boardSystem;
+            _juiceManager = juiceManager;
             _pieceViews = new PieceView[_boardSystem.Grid.Width, _boardSystem.Grid.Height];
+            new BoardBackdrop().Build(
+                transform,
+                _boardSystem.Grid.Width,
+                _boardSystem.Grid.Height,
+                GetWorldPosition,
+                _spacing);
             SpawnInitialVisuals();
         }
 
@@ -85,44 +98,48 @@ namespace Match3.View
             IsAnimating = false;
         }
 
-        public IEnumerator AnimateDestroy(List<MatchResult> matches)
+        public IEnumerator AnimateResolution(MatchResolution resolution)
         {
             IsAnimating = true;
 
             var piecesToDestroy = new HashSet<PieceView>();
             var specialViews = new HashSet<PieceView>();
 
-            foreach (var match in matches)
-                foreach (var pieceData in match.MatchedPieces)
-                {
-                    var view = GetPieceView(pieceData.X, pieceData.Y);
-                    if (view == null) continue;
+            foreach (var piece in resolution.ClearedPieces)
+            {
+                var view = GetPieceView(piece.X, piece.Y);
+                if (view != null)
                     piecesToDestroy.Add(view);
-                    if (pieceData.Type != PieceType.Normal && pieceData.Type != PieceType.Empty)
-                        specialViews.Add(view);
-                }
+            }
 
-            if (piecesToDestroy.Count == 0) { IsAnimating = false; yield break; }
+            foreach (var activation in resolution.ActivatedSpecials)
+            {
+                var view = GetPieceView(activation.Piece.X, activation.Piece.Y);
+                if (view != null)
+                    specialViews.Add(view);
+            }
+
+            if (piecesToDestroy.Count == 0)
+            {
+                ApplySpecialCreations(resolution.CreatedSpecials);
+                IsAnimating = false;
+                yield break;
+            }
 
             if (specialViews.Count > 0)
             {
-                int blastX = -1, blastY = -1;
-                bool found = false;
-                foreach (var match in matches)
+                GridPosition? blastPosition = null;
+                foreach (var activation in resolution.ActivatedSpecials)
                 {
-                    if (found) break;
-                    foreach (var pd in match.MatchedPieces)
-                        if (pd.Type != PieceType.Normal && pd.Type != PieceType.Empty)
-                        {
-                            blastX = pd.X;
-                            blastY = pd.Y;
-                            found = true;
-                            break;
-                        }
+                    blastPosition = new GridPosition(activation.Piece.X, activation.Piece.Y);
+                    break;
                 }
 
-                if (blastX >= 0)
-                    TriggerShockwave(blastX, blastY, piecesToDestroy);
+                if (blastPosition.HasValue)
+                    TriggerShockwave(
+                        blastPosition.Value.X,
+                        blastPosition.Value.Y,
+                        piecesToDestroy);
 
                 if (Camera.main != null)
                     Camera.main.transform.DOShakePosition(0.5f, 0.45f, 20, 90f, false, true);
@@ -137,8 +154,7 @@ namespace Match3.View
                 Color tint = view.TintColor;
                 Vector3 pos = view.transform.position;
 
-                if (JuiceManager.Instance != null)
-                    JuiceManager.Instance.Collect(pos, tint);
+                _juiceManager.Collect(pos, tint);
 
                 _pieceViews[view.X, view.Y] = null;
 
@@ -151,7 +167,27 @@ namespace Match3.View
             }
 
             yield return new WaitUntil(() => done);
+            ApplySpecialCreations(resolution.CreatedSpecials);
             IsAnimating = false;
+        }
+
+        private void ApplySpecialCreations(IReadOnlyList<SpecialCreation> creations)
+        {
+            foreach (var creation in creations)
+            {
+                var view = GetPieceView(creation.Piece.X, creation.Piece.Y);
+                if (view == null)
+                    continue;
+
+                var sprite = _spriteConfig.GetSprite(creation.Piece.Color, creation.Type);
+                view.Setup(
+                    creation.Piece.X,
+                    creation.Piece.Y,
+                    creation.Piece.Color,
+                    creation.Type,
+                    sprite);
+                view.PlaySpawnAnimation();
+            }
         }
 
         private void TriggerShockwave(int cx, int cy, HashSet<PieceView> excluded)

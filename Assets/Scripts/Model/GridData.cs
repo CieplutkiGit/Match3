@@ -4,11 +4,16 @@ namespace Match3.Model
     {
         private readonly PieceData[,] _grid;
 
-        public int Width { get; private set; }
-        public int Height { get; private set; }
+        public int Width { get; }
+        public int Height { get; }
 
         public GridData(int width, int height)
         {
+            if (width <= 0)
+                throw new System.ArgumentOutOfRangeException(nameof(width));
+            if (height <= 0)
+                throw new System.ArgumentOutOfRangeException(nameof(height));
+
             Width = width;
             Height = height;
             _grid = new PieceData[width, height];
@@ -25,15 +30,15 @@ namespace Match3.Model
 
         public void Set(int x, int y, PieceData value)
         {
-            if (IsValidPosition(x, y))
-            {
-                _grid[x, y] = value;
-                if (value != null)
-                {
-                    value.X = x;
-                    value.Y = y;
-                }
-            }
+            if (!IsValidPosition(x, y))
+                throw new System.ArgumentOutOfRangeException(nameof(x));
+
+            _grid[x, y] = value;
+            if (value == null)
+                return;
+
+            value.X = x;
+            value.Y = y;
         }
 
         public bool IsValidPosition(int x, int y)

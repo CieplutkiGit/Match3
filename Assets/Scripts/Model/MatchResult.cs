@@ -4,13 +4,13 @@ namespace Match3.Model
 {
     public class MatchResult
     {
-        public List<PieceData> MatchedPieces { get; private set; }
-        public PieceType GeneratedSpecialType { get; set; }
+        public List<PieceData> MatchedPieces { get; }
+        public PieceType SpecialCreationType { get; set; }
 
         public MatchResult()
         {
             MatchedPieces = new List<PieceData>();
-            GeneratedSpecialType = PieceType.Normal;
+            SpecialCreationType = PieceType.Normal;
         }
 
         public void AddPiece(PieceData piece)

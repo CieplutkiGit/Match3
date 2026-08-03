@@ -24,9 +24,6 @@ namespace Match3.Data
             {
                 if (item.Color == color)
                 {
-                    // Use Unity's != null (not C# ??) so unassigned Unity objects are
-                    // correctly treated as null and fall back to NormalSprite.
-                    
                     switch (type)
                     {
                         case PieceType.Bomb:

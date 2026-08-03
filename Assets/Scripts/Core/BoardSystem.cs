@@ -1,49 +1,37 @@
 using System;
 using System.Collections.Generic;
 using Match3.Model;
-using Match3.Data;
 
 namespace Match3.Core
 {
-    public class BoardSystem
+    public sealed class BoardSystem
     {
-        public GridData Grid { get; private set; }
-        private readonly LevelSettings _levelSettings;
+        private readonly BoardConfiguration _configuration;
         private readonly IMatchDetector _matchDetector;
-        private readonly List<PieceData> _keptSpecialPieces = new List<PieceData>();
-        private readonly List<PieceData> _blastPieces = new List<PieceData>();
+        private readonly Random _random;
 
-        public IReadOnlyList<PieceData> LastBlastPieces => _blastPieces;
+        public GridData Grid { get; }
 
         public event Action<int, int, int, int> OnPiecesSwapped;
         public event Action OnBoardGenerated;
 
-        public BoardSystem(LevelSettings levelSettings, IMatchDetector matchDetector)
+        public BoardSystem(BoardConfiguration configuration, IMatchDetector matchDetector)
         {
-            _levelSettings = levelSettings;
-            _matchDetector = matchDetector;
-            Grid = new GridData(_levelSettings.GridWidth, _levelSettings.GridHeight);
+            _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
+            _matchDetector = matchDetector ?? throw new ArgumentNullException(nameof(matchDetector));
+            _random = new Random(_configuration.RandomSeed);
+            Grid = new GridData(_configuration.Width, _configuration.Height);
         }
 
         public void FillBoard()
         {
-            var random          = new Random();
-            var availableColors = _levelSettings.AvailableColors;
-
             for (int x = 0; x < Grid.Width; x++)
             {
                 for (int y = 0; y < Grid.Height; y++)
                 {
-                    var validColors = new List<PieceColor>();
-                    foreach (var color in availableColors)
-                        if (IsValidInitialColor(x, y, color))
-                            validColors.Add(color);
-
-                    PieceColor chosen = validColors.Count > 0
-                        ? validColors[random.Next(validColors.Count)]
-                        : availableColors[random.Next(availableColors.Length)];
-
-                    Grid.Set(x, y, new PieceData(x, y, chosen, PieceType.Normal));
+                    var validColors = GetValidInitialColors(x, y);
+                    var color = validColors[_random.Next(validColors.Count)];
+                    Grid.Set(x, y, new PieceData(x, y, color, PieceType.Normal));
                 }
             }
 
@@ -57,120 +45,73 @@ namespace Match3.Core
             if (!Grid.IsValidPosition(x1, y1) || !Grid.IsValidPosition(x2, y2))
                 return false;
 
-            int dx = Math.Abs(x1 - x2);
-            int dy = Math.Abs(y1 - y2);
-            if ((dx == 1 && dy == 0) || (dx == 0 && dy == 1))
+            int horizontalDistance = Math.Abs(x1 - x2);
+            int verticalDistance = Math.Abs(y1 - y2);
+            bool adjacent = horizontalDistance + verticalDistance == 1;
+            if (!adjacent)
+                return false;
+
+            SwapInGrid(x1, y1, x2, y2);
+            matches = _matchDetector.FindMatches(Grid);
+            if (matches.Count > 0)
             {
-                SwapInGrid(x1, y1, x2, y2);
-                matches = _matchDetector.FindMatches(Grid);
-                if (matches.Count > 0)
-                {
-                    OnPiecesSwapped?.Invoke(x1, y1, x2, y2);
-                    return true;
-                }
-                SwapInGrid(x1, y1, x2, y2);
+                OnPiecesSwapped?.Invoke(x1, y1, x2, y2);
+                return true;
             }
 
+            SwapInGrid(x1, y1, x2, y2);
             return false;
         }
 
-        public void ClearMatches(List<MatchResult> matches, int focusX = -1, int focusY = -1)
+        public MatchResolution ResolveMatches(IReadOnlyList<MatchResult> matches, GridPosition? focus = null)
         {
-            _keptSpecialPieces.Clear();
-            _blastPieces.Clear();
+            if (matches == null)
+                throw new ArgumentNullException(nameof(matches));
 
-            var alreadyMatched = new HashSet<PieceData>();
+            var resolution = new MatchResolution();
+            var creations = SelectSpecialCreations(matches, focus);
+            var cleared = new HashSet<PieceData>();
+            var queued = new HashSet<PieceData>();
+            var activationQueue = new Queue<SpecialActivation>();
+
             foreach (var match in matches)
-                foreach (var p in match.MatchedPieces)
-                    alreadyMatched.Add(p);
-
-            var activatingSpecials = new List<(PieceData piece, PieceType originalType)>();
-
-            foreach (var match in matches)
             {
-                PieceData specialSpawnPiece = null;
-                if (match.GeneratedSpecialType != PieceType.Normal)
+                foreach (var piece in match.MatchedPieces)
                 {
-                    foreach (var p in match.MatchedPieces)
+                    if (creations.TryGetValue(piece, out PieceType createdType))
                     {
-                        if (p.X == focusX && p.Y == focusY)
-                        {
-                            specialSpawnPiece = p;
-                            break;
-                        }
+                        piece.Type = createdType;
+                        resolution.AddCreatedSpecial(new SpecialCreation(piece, createdType));
+                        continue;
                     }
-                    if (specialSpawnPiece == null && match.MatchedPieces.Count > 0)
-                        specialSpawnPiece = match.MatchedPieces[0];
-                }
 
-                foreach (var p in match.MatchedPieces)
-                {
-                    if (p == specialSpawnPiece)
-                    {
-                        p.Type = match.GeneratedSpecialType;
-                        _keptSpecialPieces.Add(p);
-                    }
-                    else
-                    {
-                        if (p.Type != PieceType.Normal && p.Type != PieceType.Empty)
-                            activatingSpecials.Add((p, p.Type));
-                        Grid.Set(p.X, p.Y, null);
-                    }
+                    QueueSpecial(piece, activationQueue, queued);
+                    ClearPiece(piece, resolution, cleared);
                 }
             }
 
-            var keptSet = new HashSet<PieceData>(_keptSpecialPieces);
-            foreach (var (special, type) in activatingSpecials)
+            while (activationQueue.Count > 0)
             {
-                foreach (var bp in GetBlastArea(special, type))
+                var activation = activationQueue.Dequeue();
+                resolution.AddActivatedSpecial(activation);
+
+                foreach (var piece in GetBlastArea(activation.Piece, activation.Type))
                 {
-                    if (!alreadyMatched.Contains(bp) && !_blastPieces.Contains(bp) && !keptSet.Contains(bp))
-                    {
-                        _blastPieces.Add(bp);
-                        Grid.Set(bp.X, bp.Y, null);
-                    }
+                    if (creations.ContainsKey(piece))
+                        continue;
+
+                    QueueSpecial(piece, activationQueue, queued);
+                    ClearPiece(piece, resolution, cleared);
                 }
             }
-        }
 
-        private List<PieceData> GetBlastArea(PieceData special, PieceType type)
-        {
-            var result = new List<PieceData>();
-            switch (type)
-            {
-                case PieceType.Bomb:
-                    for (int dx = -1; dx <= 1; dx++)
-                        for (int dy = -1; dy <= 1; dy++)
-                        {
-                            if (!Grid.IsValidPosition(special.X + dx, special.Y + dy)) continue;
-                            var p = Grid.Get(special.X + dx, special.Y + dy);
-                            if (p != null) result.Add(p);
-                        }
-                    break;
-                case PieceType.HorizontalLine:
-                    for (int x = 0; x < Grid.Width; x++)
-                    {
-                        var p = Grid.Get(x, special.Y);
-                        if (p != null) result.Add(p);
-                    }
-                    break;
-                case PieceType.VerticalLine:
-                    for (int y = 0; y < Grid.Height; y++)
-                    {
-                        var p = Grid.Get(special.X, y);
-                        if (p != null) result.Add(p);
-                    }
-                    break;
-            }
-            return result;
+            return resolution;
         }
 
         public List<PieceFallInfo> ApplyGravityAndRefill(out List<PieceData> spawnedPieces)
         {
-            var fallInfoList = new List<PieceFallInfo>();
+            var fallInfos = new List<PieceFallInfo>();
             spawnedPieces = new List<PieceData>();
-            var random = new Random();
-            var availableColors = _levelSettings.AvailableColors;
 
             for (int x = 0; x < Grid.Width; x++)
             {
@@ -181,77 +122,211 @@ namespace Match3.Core
                     if (current == null)
                     {
                         emptySpaces++;
+                        continue;
                     }
-                    else if (emptySpaces > 0)
-                    {
-                        Grid.Set(x, y - emptySpaces, current);
-                        Grid.Set(x, y, null);
-                        current.X = x;
-                        current.Y = y - emptySpaces;
-                        fallInfoList.Add(new PieceFallInfo(x, y, x, y - emptySpaces));
-                    }
+
+                    if (emptySpaces == 0)
+                        continue;
+
+                    int targetY = y - emptySpaces;
+                    Grid.Set(x, targetY, current);
+                    Grid.Set(x, y, null);
+                    fallInfos.Add(new PieceFallInfo(x, y, x, targetY));
                 }
 
-                for (int i = 0; i < emptySpaces; i++)
+                for (int index = 0; index < emptySpaces; index++)
                 {
-                    int targetY = Grid.Height - emptySpaces + i;
-                    int spawnY = Grid.Height + i;
-                    var color = availableColors[random.Next(availableColors.Length)];
-                    var newPiece = new PieceData(x, targetY, color, PieceType.Normal);
-                    Grid.Set(x, targetY, newPiece);
-                    spawnedPieces.Add(newPiece);
-                    fallInfoList.Add(new PieceFallInfo(x, spawnY, x, targetY));
+                    int targetY = Grid.Height - emptySpaces + index;
+                    int spawnY = Grid.Height + index;
+                    var color = NextColor();
+                    var piece = new PieceData(x, targetY, color, PieceType.Normal);
+                    Grid.Set(x, targetY, piece);
+                    spawnedPieces.Add(piece);
+                    fallInfos.Add(new PieceFallInfo(x, spawnY, x, targetY));
                 }
             }
 
-            foreach (var special in _keptSpecialPieces)
+            return fallInfos;
+        }
+
+        private Dictionary<PieceData, PieceType> SelectSpecialCreations(
+            IReadOnlyList<MatchResult> matches,
+            GridPosition? focus)
+        {
+            var creations = new Dictionary<PieceData, PieceType>();
+
+            foreach (var match in matches)
             {
-                spawnedPieces.Add(special);
+                if (match.SpecialCreationType == PieceType.Normal)
+                    continue;
 
-                bool covered = false;
-                foreach (var fi in fallInfoList)
+                var piece = SelectSpecialPiece(match, focus);
+                if (piece != null)
+                    creations[piece] = match.SpecialCreationType;
+            }
+
+            return creations;
+        }
+
+        private static PieceData SelectSpecialPiece(MatchResult match, GridPosition? focus)
+        {
+            if (focus.HasValue)
+            {
+                foreach (var piece in match.MatchedPieces)
                 {
-                    if (fi.ToX == special.X && fi.ToY == special.Y && Grid.Get(fi.ToX, fi.ToY) == special)
+                    if (piece.Type == PieceType.Normal &&
+                        piece.X == focus.Value.X &&
+                        piece.Y == focus.Value.Y)
+                        return piece;
+                }
+            }
+
+            PieceData selected = null;
+            foreach (var piece in match.MatchedPieces)
+            {
+                if (piece.Type != PieceType.Normal)
+                    continue;
+
+                if (selected == null || piece.Y < selected.Y || piece.Y == selected.Y && piece.X < selected.X)
+                    selected = piece;
+            }
+
+            return selected;
+        }
+
+        private static void QueueSpecial(
+            PieceData piece,
+            Queue<SpecialActivation> activationQueue,
+            HashSet<PieceData> queued)
+        {
+            if (piece == null || piece.Type == PieceType.Normal || piece.Type == PieceType.Empty)
+                return;
+            if (!queued.Add(piece))
+                return;
+
+            activationQueue.Enqueue(new SpecialActivation(piece, piece.Type));
+        }
+
+        private void ClearPiece(PieceData piece, MatchResolution resolution, HashSet<PieceData> cleared)
+        {
+            if (piece == null || !cleared.Add(piece))
+                return;
+
+            resolution.AddClearedPiece(piece);
+            if (Grid.IsValidPosition(piece.X, piece.Y) && ReferenceEquals(Grid.Get(piece.X, piece.Y), piece))
+                Grid.Set(piece.X, piece.Y, null);
+        }
+
+        private List<PieceData> GetBlastArea(PieceData special, PieceType type)
+        {
+            var pieces = new List<PieceData>();
+
+            if (type == PieceType.Bomb)
+            {
+                for (int horizontalOffset = -_configuration.BombRadius;
+                     horizontalOffset <= _configuration.BombRadius;
+                     horizontalOffset++)
+                {
+                    for (int verticalOffset = -_configuration.BombRadius;
+                         verticalOffset <= _configuration.BombRadius;
+                         verticalOffset++)
                     {
-                        covered = true;
-                        break;
+                        AddPieceAt(
+                            special.X + horizontalOffset,
+                            special.Y + verticalOffset,
+                            pieces);
                     }
                 }
-
-                if (!covered)
-                    fallInfoList.Add(new PieceFallInfo(special.X, special.Y, special.X, special.Y));
             }
-            _keptSpecialPieces.Clear();
+            else if (type == PieceType.HorizontalLine)
+            {
+                for (int x = 0; x < Grid.Width; x++)
+                    AddPieceAt(x, special.Y, pieces);
+            }
+            else if (type == PieceType.VerticalLine)
+            {
+                for (int y = 0; y < Grid.Height; y++)
+                    AddPieceAt(special.X, y, pieces);
+            }
 
-            return fallInfoList;
+            return pieces;
+        }
+
+        private void AddPieceAt(int x, int y, ICollection<PieceData> pieces)
+        {
+            if (!Grid.IsValidPosition(x, y))
+                return;
+
+            var piece = Grid.Get(x, y);
+            if (piece != null)
+                pieces.Add(piece);
+        }
+
+        private List<PieceColor> GetValidInitialColors(int x, int y)
+        {
+            var validColors = new List<PieceColor>();
+            foreach (var color in _configuration.AvailableColors)
+            {
+                if (IsValidInitialColor(x, y, color))
+                    validColors.Add(color);
+            }
+
+            if (validColors.Count == 0)
+                throw new InvalidOperationException("No valid color is available for board generation.");
+
+            return validColors;
+        }
+
+        private PieceColor NextColor()
+        {
+            int index = _random.Next(_configuration.AvailableColors.Count);
+            return _configuration.AvailableColors[index];
         }
 
         private void SwapInGrid(int x1, int y1, int x2, int y2)
         {
-            var p1 = Grid.Get(x1, y1);
-            var p2 = Grid.Get(x2, y2);
-            Grid.Set(x1, y1, p2);
-            Grid.Set(x2, y2, p1);
-            if (p1 != null) { p1.X = x2; p1.Y = y2; }
-            if (p2 != null) { p2.X = x1; p2.Y = y1; }
+            var first = Grid.Get(x1, y1);
+            var second = Grid.Get(x2, y2);
+            Grid.Set(x1, y1, second);
+            Grid.Set(x2, y2, first);
         }
 
         private bool IsValidInitialColor(int x, int y, PieceColor color)
         {
-            if (x >= 2)
+            if (x >= _configuration.InitialMatchLength - 1)
             {
-                var p1 = Grid.Get(x - 1, y);
-                var p2 = Grid.Get(x - 2, y);
-                if (p1 != null && p2 != null && p1.Color == color && p2.Color == color)
+                bool horizontalMatch = true;
+                for (int offset = 1; offset < _configuration.InitialMatchLength; offset++)
+                {
+                    var piece = Grid.Get(x - offset, y);
+                    if (piece == null || piece.Color != color)
+                    {
+                        horizontalMatch = false;
+                        break;
+                    }
+                }
+
+                if (horizontalMatch)
                     return false;
             }
-            if (y >= 2)
+
+            if (y >= _configuration.InitialMatchLength - 1)
             {
-                var p1 = Grid.Get(x, y - 1);
-                var p2 = Grid.Get(x, y - 2);
-                if (p1 != null && p2 != null && p1.Color == color && p2.Color == color)
+                bool verticalMatch = true;
+                for (int offset = 1; offset < _configuration.InitialMatchLength; offset++)
+                {
+                    var piece = Grid.Get(x, y - offset);
+                    if (piece == null || piece.Color != color)
+                    {
+                        verticalMatch = false;
+                        break;
+                    }
+                }
+
+                if (verticalMatch)
                     return false;
             }
+
             return true;
         }
     }
