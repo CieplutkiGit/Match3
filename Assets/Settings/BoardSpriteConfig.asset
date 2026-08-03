@@ -1,0 +1,46 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6cfd70ef0c0b48ab99fae400c58bc00f, type: 3}
+  m_Name: BoardSpriteConfig
+  m_EditorClassIdentifier: 
+  _backgroundSprite: {fileID: 4455624667891937291, guid: 3d2559a8fbb66b348a70cd8471849be7, type: 3}
+  _glowSprite: {fileID: 0}
+  _rimSprite: {fileID: 6209112618441324499, guid: fe17e4a290cd5ec45a1997cf9639c28a, type: 3}
+  _panelSprite: {fileID: 0}
+  _lightCellSprite: {fileID: -3536553783857513973, guid: 55de7fbb7f6a8e44984429897b80ff09, type: 3}
+  _darkCellSprite: {fileID: 0}
+  _backgroundDrawMode: 0
+  _glowDrawMode: 0
+  _frameDrawMode: 0
+  _cellDrawMode: 0
+  _backgroundTopColor: {r: 1, g: 1, b: 1, a: 1}
+  _backgroundBottomColor: {r: 1, g: 1, b: 1, a: 1}
+  _backgroundTint: {r: 1, g: 1, b: 1, a: 1}
+  _glowColor: {r: 1, g: 1, b: 1, a: 0.16}
+  _rimColor: {r: 1, g: 1, b: 1, a: 1}
+  _panelColor: {r: 1, g: 1, b: 1, a: 1}
+  _lightCellColor: {r: 1, g: 1, b: 1, a: 1}
+  _darkCellColor: {r: 0.8915094, g: 1, b: 0.91065484, a: 1}
+  _fallbackBackgroundWidth: 20
+  _fallbackBackgroundHeight: 12
+  _backgroundScale: 1
+  _glowScale: 2.4
+  _rimPadding: 0.7
+  _panelPadding: 0.18
+  _cellScale: 0.98
+  _glowPulseScale: 1.07
+  _glowPulseDuration: 2.6
+  _backgroundSortingOrder: -100
+  _glowSortingOrder: -50
+  _rimSortingOrder: -8
+  _panelSortingOrder: -7
+  _cellSortingOrder: -6

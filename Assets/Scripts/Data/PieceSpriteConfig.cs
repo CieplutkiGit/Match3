@@ -6,6 +6,9 @@ namespace Match3.Data
     [CreateAssetMenu(fileName = "PieceSpriteConfig", menuName = "Match3/Piece Sprite Config")]
     public class PieceSpriteConfig : ScriptableObject
     {
+        [Header("Layout")]
+        [SerializeField, Min(0.01f)] private float _pieceSizeInCells = 0.85f;
+
         [System.Serializable]
         public struct PieceColorSprite
         {
@@ -16,7 +19,10 @@ namespace Match3.Data
             public Sprite VerticalLineSprite;
         }
 
+        [Header("Sprites")]
         public PieceColorSprite[] ColorSprites;
+
+        public float PieceSizeInCells => _pieceSizeInCells;
 
         public Sprite GetSprite(PieceColor color, PieceType type)
         {

@@ -10,6 +10,8 @@
 /[Bb]uilds/
 /[Ll]ogs/
 /[Uu]ser[Ss]ettings/
+/[Aa]ssets/[Tt]ests/
+/[Aa]ssets/[Tt]ests.meta
 *.log
 
 # MemoryCaptures can get excessive in size.

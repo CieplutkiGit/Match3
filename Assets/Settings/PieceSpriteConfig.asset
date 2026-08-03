@@ -12,6 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 764cff11629e82d4b866b75e5f3d528f, type: 3}
   m_Name: PieceSpriteConfig
   m_EditorClassIdentifier:
+  _pieceSizeInCells: 0.85
   ColorSprites:
   - Color: 1
     NormalSprite: {fileID: 21300000, guid: 66314a22d21c72f4baca7d184cfa3601, type: 3}

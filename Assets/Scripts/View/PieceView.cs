@@ -10,6 +10,7 @@ namespace Match3.View
     public class PieceView : MonoBehaviour
     {
         private SpriteRenderer _spriteRenderer;
+        private Vector3 _baseScale;
 
         public PieceColor Color { get; private set; }
         public PieceType Type { get; private set; }
@@ -22,14 +23,27 @@ namespace Match3.View
             _spriteRenderer = GetComponent<SpriteRenderer>();
         }
 
-        public void Setup(int x, int y, PieceColor color, PieceType type, Sprite sprite)
+        public void Setup(
+            int x,
+            int y,
+            PieceColor color,
+            PieceType type,
+            Sprite sprite,
+            float cellSize,
+            float sizeInCells)
         {
+            if (sprite == null)
+                throw new ArgumentNullException(nameof(sprite));
+
             X = x;
             Y = y;
             Color = color;
             Type = type;
             _spriteRenderer.sprite = sprite;
-            transform.localScale = Vector3.one;
+            float spriteSize = Mathf.Max(sprite.bounds.size.x, sprite.bounds.size.y);
+            float scale = cellSize * sizeInCells / spriteSize;
+            _baseScale = Vector3.one * scale;
+            transform.localScale = _baseScale;
             _spriteRenderer.color = type switch
             {
                 PieceType.HorizontalLine => new UnityEngine.Color(0.4f, 0.8f, 1f),
@@ -49,7 +63,7 @@ namespace Match3.View
         {
             DOTween.Sequence()
                 .PrependInterval(delay)
-                .Append(transform.DOPunchScale(Vector3.one * strength, 0.45f, 10, 0.6f));
+                .Append(transform.DOPunchScale(_baseScale * strength, 0.45f, 10, 0.6f));
         }
 
         public void MoveTo(Vector3 targetWorldPos, float duration, Ease ease = Ease.OutCubic, Action onComplete = null)
@@ -57,8 +71,9 @@ namespace Match3.View
             transform.DOMove(targetWorldPos, duration).SetEase(ease).OnComplete(() =>
             {
                 onComplete?.Invoke();
-                transform.DOScale(new Vector3(1.15f, 0.85f, 1f), 0.07f).SetEase(Ease.OutQuad)
-                    .OnComplete(() => transform.DOScale(Vector3.one, 0.12f).SetEase(Ease.OutBack));
+                Vector3 squashScale = Vector3.Scale(_baseScale, new Vector3(1.15f, 0.85f, 1f));
+                transform.DOScale(squashScale, 0.07f).SetEase(Ease.OutQuad)
+                    .OnComplete(() => transform.DOScale(_baseScale, 0.12f).SetEase(Ease.OutBack));
             });
         }
 
@@ -67,7 +82,7 @@ namespace Match3.View
             transform.DOKill();
             SpawnParticles(6, duration);
             DOTween.Sequence()
-                .Append(transform.DOScale(Vector3.one * 1.2f, duration * 0.15f).SetEase(Ease.OutQuad))
+                .Append(transform.DOScale(_baseScale * 1.2f, duration * 0.15f).SetEase(Ease.OutQuad))
                 .Append(transform.DOScale(Vector3.zero, duration * 0.85f).SetEase(Ease.InBack))
                 .OnComplete(() =>
                 {
@@ -81,7 +96,7 @@ namespace Match3.View
             transform.DOKill();
             SpawnParticles(12, duration);
             DOTween.Sequence()
-                .Append(transform.DOScale(Vector3.one * 1.8f, duration * 0.2f).SetEase(Ease.OutQuad))
+                .Append(transform.DOScale(_baseScale * 1.8f, duration * 0.2f).SetEase(Ease.OutQuad))
                 .Append(transform.DOScale(Vector3.zero, duration * 0.8f).SetEase(Ease.InExpo))
                 .OnComplete(() =>
                 {
@@ -93,7 +108,7 @@ namespace Match3.View
         public void PlaySpawnAnimation()
         {
             transform.localScale = Vector3.zero;
-            transform.DOScale(Vector3.one, 0.25f).SetEase(Ease.OutBack);
+            transform.DOScale(_baseScale, 0.25f).SetEase(Ease.OutBack);
         }
 
         private void SpawnParticles(int count, float duration)

@@ -12,6 +12,7 @@ namespace Match3.View
     {
         [SerializeField] private PieceView _piecePrefab;
         [SerializeField] private PieceSpriteConfig _spriteConfig;
+        [SerializeField] private BoardSpriteConfig _boardSpriteConfig;
         [SerializeField] private float _spacing = 1.0f;
         [SerializeField] private float _swapDuration = 0.25f;
         [SerializeField] private float _fallDuration = 0.3f;
@@ -38,7 +39,8 @@ namespace Match3.View
                 _boardSystem.Grid.Width,
                 _boardSystem.Grid.Height,
                 GetWorldPosition,
-                _spacing);
+                _spacing,
+                _boardSpriteConfig);
             SpawnInitialVisuals();
         }
 
@@ -58,7 +60,14 @@ namespace Match3.View
         {
             var pieceInstance = Instantiate(_piecePrefab, worldPos, Quaternion.identity, transform);
             var sprite = _spriteConfig.GetSprite(color, type);
-            pieceInstance.Setup(x, y, color, type, sprite);
+            pieceInstance.Setup(
+                x,
+                y,
+                color,
+                type,
+                sprite,
+                _spacing,
+                _spriteConfig.PieceSizeInCells);
             _pieceViews[x, y] = pieceInstance;
             if (animate) pieceInstance.PlaySpawnAnimation();
             return pieceInstance;
@@ -185,7 +194,9 @@ namespace Match3.View
                     creation.Piece.Y,
                     creation.Piece.Color,
                     creation.Type,
-                    sprite);
+                    sprite,
+                    _spacing,
+                    _spriteConfig.PieceSizeInCells);
                 view.PlaySpawnAnimation();
             }
         }
